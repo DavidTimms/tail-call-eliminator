@@ -26,7 +26,7 @@ Tail Call Eliminator has several advantages over other AST rewriters which do a 
    rather than preserving their previous value.
  - It works correctly on functions which return a ternary if expression, such as:
 
-       return i ? repeat(i - 1) : false;
+        return i ? repeat(i - 1) : false;
 
 Limitations
 -----------
