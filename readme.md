@@ -5,6 +5,9 @@ This module traverses a Mozilla Parser AST, such those produced by [Esprima](htt
 
 Usage
 -----
+Install via [NPM](https://www.npmjs.org/package/tail-call-eliminator).
+
+    npm install tail-call-eliminator
 
 The module's API is a single function, so using it is simple.
 

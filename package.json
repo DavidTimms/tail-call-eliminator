@@ -1,17 +1,13 @@
 {
   "name": "tail-call-eliminator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Rewrite a Mozilla-style AST to convert simple tail-recursive functions to while loops.",
   "main": "tail-call-op.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "functional",
-    "tail-call",
-    "optimization",
-    "tail-call",
-    "elimination",
+    "recursion",
+    "tail call elimination",
+    "tail call optimization",
     "AST"
   ],
   "author": "David Timms",
