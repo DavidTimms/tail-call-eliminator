@@ -1,15 +1,12 @@
-// TODO:
-// X assign local variables to undefined before looping.
-// X remove unnecessary temp variable assignments
-//   for loop invariants.
-// X convert ternary ifs in tail position to if
-//   statements, so they can be optimised correctly.
-// - Implicit accumulators for associative operations 
-//   in tail position (eg. + and *).
 
-// main entry point. Takes and returns a Mozilla AST
-function tailCallOptimise(ast) {
-	return mapTree(ast, {});
+// main entry point. Takes a Mozilla Parser AST, a source string,
+// or a function, and returns the same type
+function tailCallOptimise(input) {
+	if (typeof(input) === "string" || typeof(input) === "function") {
+		var ast = require("esprima").parse(input.toString());
+		return require("escodegen").generate(mapTree(ast, {}));
+	}
+	return mapTree(input, {});
 }
 
 // functions for handling particular node types
@@ -304,14 +301,5 @@ function eachPair(array1, array2, func) {
 		func(array1[i], array2[i], i);
 	}
 }
-
-var src = "(" + function recursive(x, y) {
-	function doThing() {
-		return doThing();
-	}
-	var z = function () {};
-	console.log(x, y, z);
-	return recursive(x + 1, y + 1);
-} + ")()";
 
 module.exports = tailCallOptimise;
