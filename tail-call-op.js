@@ -1,11 +1,11 @@
 // TODO:
 // X assign local variables to undefined before looping.
-// - remove unnecessary temp variable assignments
+// X remove unnecessary temp variable assignments
 //   for loop invariants.
 // X convert ternary ifs in tail position to if
 //   statements, so they can be optimised correctly.
 // - Implicit accumulators for associative operations 
-//   in tail position (eg. + and *) .
+//   in tail position (eg. + and *).
 
 // main entry point. Takes and returns a Mozilla AST
 function tailCallOptimise(ast) {
@@ -21,6 +21,7 @@ var transforms = {
 		subContext.scopeName = node.id ? node.id.name : null;
 		subContext.params = node.params.map(pluck("name"));
 		subContext.tempNames = subContext.params.map(prefix("_tco_temp_"));
+		subContext.usedTempNames = [];
 		subContext.localVars = [];
 		var mapped = mapChildren(node, subContext);
 
@@ -50,7 +51,7 @@ var transforms = {
 			mapped.body = {
 				type: "BlockStatement",
 				// add declarations of temp variables above the loop
-				body: zipDeclare(subContext.tempNames)
+				body: zipDeclare(subContext.usedTempNames)
 					.concat([{
 						type: "LabeledStatement",
 						label: identifier("_tailCall_"),
@@ -122,19 +123,41 @@ var transforms = {
 // clear all variables in the scope and continue to repeat
 // the loop
 function convertTailCall(node, context) {
+	var assignments;
+	var params = [], args = [], tempNames = [];
 	context.isTailRecursive = true;
-	var args = node.argument.arguments;
+
+	eachPair(context.params, node.argument.arguments, 
+		function (param, arg, i) {
+			// ignore invariant parameters
+			if (!matchObject(arg, identifier(param))) {
+				params.push(param);
+				args.push(arg);
+				var tempName = context.tempNames[i];
+				tempNames.push(tempName);
+
+				// keep track of which temp variables have actual 
+				// been used in the scope
+				if (context.usedTempNames.indexOf(tempName) < 0) {
+					context.usedTempNames.push(tempName);
+				}
+			}
+	});
+
+	if (params.length > 1) {
+		assignments = zipAssign(tempNames, args)
+			.concat(zipAssign(params, tempNames.map(identifier)));
+	}
+	else {
+		assignments = zipAssign(params, args);
+	}
 
 	return {
 		type: "BlockStatement",
-		body: zipAssign(context.tempNames, args)
-			.concat(filteredZipAssign(
-				context.params, 
-				context.tempNames.map(identifier)))
-			.concat({
-				type: "ContinueStatement",
-				label: identifier("_tailCall_")
-			})
+		body: assignments.concat({
+			type: "ContinueStatement",
+			label: identifier("_tailCall_")
+		})
 	};
 }
 
@@ -158,20 +181,6 @@ function wrapWithReturn(expression) {
 		type: "ReturnStatement",
 		argument: expression
 	}
-}
-
-
-function filteredZipAssign(vars, values) {
-	var filteredVars = [], filteredValues = [];
-	values.forEach(function (value, i) {
-		if (!(	value && 
-				value.name && 
-				("_tco_temp_" + value.name) === vars[i])) {
-			filteredVars.push(vars[i]);
-			filteredValues.push(value);
-		}
-	});
-	return zipAssign(filteredVars, filteredValues);
 }
 
 // creates a list of assignments from an array of variable
@@ -286,6 +295,13 @@ function prefix(pre) {
 function always(value) {
 	return function () {
 		return value;
+	}
+}
+
+function eachPair(array1, array2, func) {
+	var count = Math.max(array1.length, array2.length);
+	for (var i = 0; i < count; i++) {
+		func(array1[i], array2[i], i);
 	}
 }
 
