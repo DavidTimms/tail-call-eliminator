@@ -1,0 +1,23 @@
+{
+  "name": "tail-call-eliminator",
+  "version": "0.1.0",
+  "description": "Rewrite a Mozilla-style AST to convert simple tail-recursive functions to while loops.",
+  "main": "tail-call-op.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "functional",
+    "tail-call",
+    "optimization",
+    "tail-call",
+    "elimination",
+    "AST"
+  ],
+  "author": "David Timms",
+  "license": "MIT",
+  "dependencies": {
+    "esprima": "~1.2.2",
+    "escodegen": "~1.3.2"
+  }
+}
