@@ -114,14 +114,23 @@ var transforms = {
 			}
 		}
 	},
-	ForStatement: function (node, context) {
+	ForStatement: createMapAndUnwrapProperty("init"),
+	ForInStatement: createMapAndUnwrapProperty("left"),
+	ForOfStatement: createMapAndUnwrapProperty("left")
+};
+
+// create a function which converts the node's children and 
+// unwraps the specified property from an expression statement to
+// an expression. This is useful for for loop initialisation steps.
+function createMapAndUnwrapProperty(property) {
+	return function (node, context) {
 		var mapped = mapChildren(node, context);
-		if (mapped.init.type === "ExpressionStatement") {
-			mapped.init = mapped.init.expression;
+		if (mapped && mapped[property].type === "ExpressionStatement") {
+			mapped[property] = mapped[property].expression;
 		}
 		return mapped;
-	}
-};
+	};
+}
 
 // replace the return statement with assignments to 
 // clear all variables in the scope and continue to repeat
