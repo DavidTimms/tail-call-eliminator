@@ -113,6 +113,13 @@ var transforms = {
 				})
 			}
 		}
+	},
+	ForStatement: function (node, context) {
+		var mapped = mapChildren(node, context);
+		if (mapped.init.type === "ExpressionStatement") {
+			mapped.init = mapped.init.expression;
+		}
+		return mapped;
 	}
 };
 

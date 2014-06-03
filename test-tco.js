@@ -73,6 +73,28 @@ function outer() {
 }
 testFunction(outer, []);
 
+// factorial function which will overflow the stack without optimisation
+function fact(x, acc) {
+	acc = acc || 1;
+	if (x) return fact(x - 1, x * acc);
+	else return acc;
+}
+testFunction(fact, [25000]);
+
+// variable declaration within for loop initialisation
+function forLoop() {
+	var total = 0;
+	for (var i = 0; i < 10; i++) {
+		total += i;
+	}
+	for (j = 0; j < 10; j++) {
+		total += j;
+	}
+	if (false) return forLoop();
+	return total;
+}
+testFunction(forLoop, []);
+
 //===========================================================//
 
 // Test the original and optimised versions of a function to 
@@ -83,10 +105,20 @@ function testFunction(func, args) {
 	var optimised = eval("(" + tco(func) + ")");
 	logV("    source: \n" + optimised.toString());
 
-	var expected = func.apply(null, args);
-	log("    expected output: " + expected);
+	try {
+		var expected = func.apply(null, args);
+	}
+	catch (e) {
+		if (e instanceof RangeError) {
+			logV("Original version causes stack overflow");
+		}
+	}
+	if (expected !== undefined) {
+		log("    expected output: " + expected);
+	}
+
 	var actual = optimised.apply(null, args);
-	if (actual === expected) {
+	if (expected === undefined || actual === expected) {
 		log("    TEST PASSED");
 	} else {
 		log("    FAILED");
