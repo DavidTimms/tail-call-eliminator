@@ -27,12 +27,13 @@ var transforms = {
 		if (subContext.isTailRecursive) {
 			var funcBlock = mapped.body;
 
-			// add declarations for local variables 
-			var undefinedIntialValues = 
+			// create an array of "undefined" identifiers
+			var undefinedValues = 
 				subContext.localVars.map(always(identifier("undefined")));
 
-			funcBlock.body = 
-				zipDeclare(subContext.localVars, undefinedIntialValues)
+			// add assignments to undefined for local variables to reset them
+			// at the beginning of the recursive call
+			funcBlock.body = zipAssign(subContext.localVars, undefinedValues)
 				.concat(funcBlock.body);
 
 			// add a return statement at the end to break the loop
@@ -60,6 +61,11 @@ var transforms = {
 					}])
 			};
 		}
+
+		// add local variable declarations at the top of the scope
+		mapped.body.body = 
+			zipDeclare(subContext.localVars)
+			.concat(mapped.body.body);
 		return mapped;
 	},
 	// forward function expressions to the handler for function declarations
@@ -248,7 +254,6 @@ function literal(value) {
 
 function mapTree(node, context) {
 	if (node && typeof(node) === "object") {
-		//console.log(node.type + " " + (node.name || (node.id ? node.id.name : "")));
 		return (transforms[node.type] || mapChildren)(node, context);
 	}
 	return node;

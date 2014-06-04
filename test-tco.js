@@ -95,6 +95,16 @@ function forLoop() {
 }
 testFunction(forLoop, []);
 
+// non-recursive function should maintain variable locality (shadowing)
+function nonRecursive() {
+	var y = true;
+	(function inner(x) {
+		var y = false;
+	})();
+	return y;
+}
+testFunction(nonRecursive, []);
+
 //===========================================================//
 
 // Test the original and optimised versions of a function to 
