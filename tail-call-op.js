@@ -34,7 +34,7 @@ var transforms = {
 			// add assignments to undefined for local variables to reset them
 			// at the beginning of the recursive call
 			funcBlock.body = zipAssign(subContext.localVars, undefinedValues)
-				.concat(funcBlock.body);
+				.concat(funcBlock.body.filter(truthy));
 
 			// add a return statement at the end to break the loop
 			var lastStatement = funcBlock.body[funcBlock.body.length - 1];
@@ -61,10 +61,36 @@ var transforms = {
 					}])
 			};
 		}
+		else {
+			// remove unnecessary assignments to undefined 
+			// at the start of non-recursive functions
+			var statements = mapped.body.body.filter(truthy);
+			var sequencePattern = makeAssignmentSequence([]);
+			var assignPattern = {
+				type: "AssignmentExpression",
+				right: identifier("undefined")
+			};
+			function isAllUndefAssignments(statement) {
+				return statement
+					.expression
+					.expressions
+					.every(function (assign) {
+						return matchObject(assign, assignPattern);
+					});
+			}
+
+			for (var i = 0; 
+				matchObject(statements[i], sequencePattern) &&
+				isAllUndefAssignments(statements[i]);
+				i++);
+
+			mapped.body.body = statements.slice(i);
+		}
 
 		// add local variable declarations at the top of the scope
 		mapped.body.body = 
-			zipDeclare(subContext.localVars)
+			(subContext.useStrict || [])
+			.concat(zipDeclare(subContext.localVars))
 			.concat(mapped.body.body);
 		return mapped;
 	},
@@ -105,24 +131,30 @@ var transforms = {
 
 		context.localVars = context.localVars.concat(declaredVars);
 
-		return {
-			type: "ExpressionStatement",
-			expression: {
-				type: "SequenceExpression",
-				expressions: node.declarations.map(function (dec) {
-					return {
-						type: "AssignmentExpression",
-						operator: "=",
-						left: dec.id,
-						right: dec.init || identifier("undefined")
-					}
-				})
+		return makeAssignmentSequence(
+			node.declarations.map(function (dec) {
+				return {
+					type: "AssignmentExpression",
+					operator: "=",
+					left: dec.id,
+					right: dec.init || identifier("undefined")
+				}
 			}
-		}
+		));
 	},
 	ForStatement: createMapAndUnwrapProperty("init"),
 	ForInStatement: createMapAndUnwrapProperty("left"),
-	ForOfStatement: createMapAndUnwrapProperty("left")
+	ForOfStatement: createMapAndUnwrapProperty("left"),
+	ExpressionStatement: function (node, context) {
+		if (matchObject(node.expression, literal("use strict"))) {
+			// store useStrict node in the context to be 
+			// placed at the top of the function body and remove 
+			// it from its current position (by returning null)
+			context.useStrict = [node];
+			return null;
+		}
+		return mapChildren(node, context);
+	}
 };
 
 // create a function which converts the node's children and 
@@ -135,6 +167,16 @@ function createMapAndUnwrapProperty(property) {
 			mapped[property] = mapped[property].expression;
 		}
 		return mapped;
+	};
+}
+
+function makeAssignmentSequence(expressions) {
+	return {
+		type: "ExpressionStatement",
+		expression: {
+			type: "SequenceExpression",
+			expressions: expressions
+		}
 	};
 }
 
@@ -314,6 +356,10 @@ function always(value) {
 	return function () {
 		return value;
 	}
+}
+
+function truthy(value) {
+	return !!value;
 }
 
 function eachPair(array1, array2, func) {

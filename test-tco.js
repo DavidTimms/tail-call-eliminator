@@ -105,6 +105,28 @@ function nonRecursive() {
 }
 testFunction(nonRecursive, []);
 
+// non-recursive function with no init for local var
+function localNoInit() {
+	var x;
+	var y = 2;
+	return x;
+}
+testFunction(localNoInit, []);
+
+// preserve "use strict"
+function useStrict() {
+	"use strict";
+	var localVar = 78;
+	try {
+		notDeclared = 23;
+	}
+	catch (e) {
+		return true;
+	}
+	return false;
+}
+testFunction(useStrict, []);
+
 //===========================================================//
 
 // Test the original and optimised versions of a function to 
