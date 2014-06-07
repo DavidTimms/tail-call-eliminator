@@ -19,8 +19,10 @@ var transforms = {
 		subContext.params = node.params.map(pluck("name"));
 		subContext.tempNames = subContext.params.map(prefix("_tco_temp_"));
 		subContext.usedTempNames = [];
-		subContext.localVars = [];
+		subContext.localVars = {};
 		var mapped = mapChildren(node, subContext);
+
+		var localVars = Object.keys(subContext.localVars);
 
 		// if the function has been found to be tail recursive
 		// then wrap the function body in a while loop
@@ -29,11 +31,11 @@ var transforms = {
 
 			// create an array of "undefined" identifiers
 			var undefinedValues = 
-				subContext.localVars.map(always(identifier("undefined")));
+				localVars.map(always(identifier("undefined")));
 
 			// add assignments to undefined for local variables to reset them
 			// at the beginning of the recursive call
-			funcBlock.body = zipAssign(subContext.localVars, undefinedValues)
+			funcBlock.body = zipAssign(localVars, undefinedValues)
 				.concat(funcBlock.body.filter(truthy));
 
 			// add a return statement at the end to break the loop
@@ -94,7 +96,7 @@ var transforms = {
 		// add local variable declarations at the top of the scope
 		mapped.body.body = 
 			useStrictInstruction
-			.concat(zipDeclare(subContext.localVars))
+			.concat(zipDeclare(localVars))
 			.concat(mapped.body.body);
 		return mapped;
 	},
@@ -129,11 +131,9 @@ var transforms = {
 	// replace variable declarations with assignments
 	// and add them to the context, to be hoisted
 	VariableDeclaration: function (node, context) {
-		var declaredVars = node.declarations.map(function (dec) {
-			return dec.id.name;
-		});
-
-		context.localVars = context.localVars.concat(declaredVars);
+		node.declarations.forEach(function (dec) {
+			context.localVars[dec.id.name] = true;
+		})
 
 		return makeAssignmentSequence(
 			node.declarations.map(function (dec) {

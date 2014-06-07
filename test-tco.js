@@ -132,6 +132,22 @@ function useStrict() {
 }
 testFunction(useStrict, []);
 
+
+// multiple declarations of locals
+function multiLocals(y, z) {
+	var x = 2;
+
+	var x = 4;
+
+	if (false)
+		return multiLocals(5, 7);
+	if (false)
+		return multiLocals(5, 7);
+
+	return x;
+}
+testFunction(multiLocals, []);
+
 //===========================================================//
 
 // Test the original and optimised versions of a function to 
