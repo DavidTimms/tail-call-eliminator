@@ -87,9 +87,13 @@ var transforms = {
 			mapped.body.body = statements.slice(i);
 		}
 
+		var useStrictInstruction = 
+			subContext.hasOwnProperty("useStrict") ? 
+				subContext.useStrict : [];
+
 		// add local variable declarations at the top of the scope
 		mapped.body.body = 
-			(subContext.useStrict || [])
+			useStrictInstruction
 			.concat(zipDeclare(subContext.localVars))
 			.concat(mapped.body.body);
 		return mapped;

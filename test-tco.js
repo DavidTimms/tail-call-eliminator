@@ -123,6 +123,11 @@ function useStrict() {
 	catch (e) {
 		return true;
 	}
+	// nested function to check that only the top scope has
+	// use strict instruction
+	function foo() {
+
+	}
 	return false;
 }
 testFunction(useStrict, []);
