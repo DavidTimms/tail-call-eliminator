@@ -271,17 +271,19 @@ function zipAssign(vars, values) {
 function zipDeclare(vars, values) {
 	if (!vars) return [];
 	values = values || [];
-	return vars.map(function (varName, index) {
-		return {
-			type: "VariableDeclaration",
-			kind: "var",
-			declarations: [{
+	if (vars.length < 1) return [];
+
+	return [{
+		type: "VariableDeclaration",
+		kind: "var",
+		declarations: vars.map(function (varName, index) {
+			return {
 				type: "VariableDeclarator",
 				id: identifier(varName),
 				init: values[index] || null
-			}]
-		};
-	});
+			};
+		})
+	}];
 }
 
 function identifier(name) {
