@@ -36,7 +36,7 @@ var transforms = {
 			// add assignments to undefined for local variables to reset them
 			// at the beginning of the recursive call
 			funcBlock.body = zipAssign(localVars, undefinedValues)
-				.concat(funcBlock.body.filter(truthy));
+				.concat(funcBlock.body.filter(Boolean));
 
 			// add a return statement at the end to break the loop
 			var lastStatement = funcBlock.body[funcBlock.body.length - 1];
@@ -66,7 +66,7 @@ var transforms = {
 		else {
 			// remove unnecessary assignments to undefined 
 			// at the start of non-recursive functions
-			var statements = mapped.body.body.filter(truthy);
+			var statements = mapped.body.body.filter(Boolean);
 			var sequencePattern = makeAssignmentSequence([]);
 			var assignPattern = {
 				type: "AssignmentExpression",
@@ -200,16 +200,20 @@ function convertTailCall(node, context) {
 				args.push(arg);
 				var tempName = context.tempNames[i];
 				tempNames.push(tempName);
-
-				// keep track of which temp variables have actual 
-				// been used in the scope
-				if (context.usedTempNames.indexOf(tempName) < 0) {
-					context.usedTempNames.push(tempName);
-				}
 			}
 	});
 
-	if (params.length > 1) {
+	var tempVarsNeeded = 
+		!(args.length < 2 || args.slice(0, -1).every(isLiteral));
+
+	// keep track of which temp variables have actual 
+	// been used in the scope
+	if (tempVarsNeeded) {
+		tempNames.forEach(function (tempName) {
+			if (context.usedTempNames.indexOf(tempName) < 0) {
+				context.usedTempNames.push(tempName);
+			}
+		});
 		assignments = zipAssign(tempNames, args)
 			.concat(zipAssign(params, tempNames.map(identifier)));
 	}
@@ -346,6 +350,10 @@ function matchObject(obj, pattern) {
 	return obj === pattern;
 }
 
+function isLiteral(node) {
+	return node.type === "Literal";
+}
+
 function pluck(key) {
 	return function (obj) {
 		if (obj) return obj[key];
@@ -362,10 +370,6 @@ function always(value) {
 	return function () {
 		return value;
 	}
-}
-
-function truthy(value) {
-	return !!value;
 }
 
 function eachPair(array1, array2, func) {
