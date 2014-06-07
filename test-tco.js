@@ -2,7 +2,7 @@ var tco = require("./tail-call-op.js");
 var esprima = require("esprima");
 var escodegen = require("escodegen");
 
-verbose = true;
+verbose = process.argv[2] === "--verbose";
 
 var log = console.log.bind(console);
 var logV = function (msg) {

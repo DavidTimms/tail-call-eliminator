@@ -1,6 +1,6 @@
 {
   "name": "tail-call-eliminator",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Rewrite a Mozilla-style AST to convert simple tail-recursive functions to while loops.",
   "main": "tail-call-op.js",
   "keywords": [
