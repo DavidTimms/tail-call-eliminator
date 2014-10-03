@@ -4,7 +4,8 @@
 function tailCallOptimise(input) {
 	if (typeof(input) === "string" || typeof(input) === "function") {
 		var ast = require("esprima").parse(input.toString());
-		return require("escodegen").generate(mapTree(ast, {}));
+		var optimised = mapTree(ast, {});
+		return require("escodegen").generate(optimised);
 	}
 	return mapTree(input, {});
 }
@@ -237,19 +238,44 @@ function convertTailCall(node, context) {
 // then call mapTree again to perform tail call optimisation
 function convertTernaryIf(node, context) {
 	var ternIf = node.argument;
-	return mapTree({
+	var mapped = mapTree({
 		type: "IfStatement",
 		test: ternIf.test,
-		consequent: wrapWithReturn(ternIf.consequent),
-		alternate: wrapWithReturn(ternIf.alternate)
+		consequent: convertTernaryIfBody(ternIf.consequent),
+		alternate: convertTernaryIfBody(ternIf.alternate)
 	}, context);
+	return mapped;
 }
 
-function wrapWithReturn(expression) {
+function convertTernaryIfBody(expression) {
+	if (expression.type === "SequenceExpression") {
+
+		var blockBody = expression.expressions
+			.map(wrapWithExpressionStatement);
+		blockBody.push(
+			wrapWithReturnStatement(blockBody.pop().expression)
+		);
+
+		return {
+			type: "BlockStatement",
+			body: blockBody
+		}
+	}
+	else return wrapWithReturnStatement(expression);
+}
+
+function wrapWithReturnStatement(expression) {
 	return {
 		type: "ReturnStatement",
 		argument: expression
-	}
+	};
+}
+
+function wrapWithExpressionStatement(expression) {
+	return {
+		type: "ExpressionStatement",
+		expression: expression,
+	};
 }
 
 // creates a list of assignments from an array of variable

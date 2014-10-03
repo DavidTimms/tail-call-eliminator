@@ -71,7 +71,7 @@ function outer() {
 	})(30);
 	return count;
 }
-testFunction(outer, []);
+testFunction(outer);
 
 // factorial function which will overflow the stack without optimisation
 function fact(x, acc) {
@@ -93,7 +93,7 @@ function forLoop() {
 	if (false) return forLoop();
 	return total;
 }
-testFunction(forLoop, []);
+testFunction(forLoop);
 
 // non-recursive function should maintain variable locality (shadowing)
 function nonRecursive() {
@@ -103,7 +103,7 @@ function nonRecursive() {
 	})();
 	return y;
 }
-testFunction(nonRecursive, []);
+testFunction(nonRecursive);
 
 // non-recursive function with no init for local var
 function localNoInit() {
@@ -111,7 +111,7 @@ function localNoInit() {
 	var y = 2;
 	return x;
 }
-testFunction(localNoInit, []);
+testFunction(localNoInit);
 
 // preserve "use strict"
 function useStrict() {
@@ -130,7 +130,7 @@ function useStrict() {
 	}
 	return false;
 }
-testFunction(useStrict, []);
+testFunction(useStrict);
 
 
 // multiple declarations of locals
@@ -141,12 +141,17 @@ function multiLocals(y, z) {
 
 	if (false)
 		return multiLocals(5, 7);
-	if (false)
-		return multiLocals(5, 7);
 
 	return x;
 }
-testFunction(multiLocals, []);
+testFunction(multiLocals);
+
+// sequence expression in ternary if
+function seqTernary(a) {
+
+	return a ? (a -= 1, seqTernary(a - 1)) : a;
+}
+testFunction(seqTernary, [20000]);
 
 //===========================================================//
 
@@ -154,6 +159,7 @@ testFunction(multiLocals, []);
 // check that they give the same result, printing the outcome
 // to the console
 function testFunction(func, args) {
+	args = args || [];
 	log("\nTesting Function: " + func.name);
 	var optimised = eval("(" + tco(func) + ")");
 	logV("    source: \n" + optimised.toString());
@@ -170,8 +176,17 @@ function testFunction(func, args) {
 		log("    expected output: " + expected);
 	}
 
-	var actual = optimised.apply(null, args);
-	if (expected === undefined || actual === expected) {
+	try {
+		var actual = optimised.apply(null, args);
+	}
+	catch (e) {
+		var failed = true;
+	}
+	if (failed) {
+		log("    FAILED");
+		log("    Eliminator failed to avoid stack overflow");
+	}
+	else if (expected === undefined || actual === expected) {
 		log("    TEST PASSED");
 	} else {
 		log("    FAILED");
