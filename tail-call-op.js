@@ -1,3 +1,6 @@
+var flatMap = require("flatmap");
+var jsonpretty = require("jsonpretty");
+var validate = require("ast-validator");
 
 // main entry point. Takes a Mozilla Parser AST, a source string,
 // or a function, and returns the same type
@@ -5,6 +8,7 @@ function tailCallOptimise(input) {
 	if (typeof(input) === "string" || typeof(input) === "function") {
 		var ast = require("esprima").parse(input.toString());
 		var optimised = mapTree(ast, {});
+		validate(optimised);
 		return require("escodegen").generate(optimised);
 	}
 	return mapTree(input, {});
@@ -73,14 +77,14 @@ var transforms = {
 				type: "AssignmentExpression",
 				right: identifier("undefined")
 			};
-			function isAllUndefAssignments(statement) {
+			var isAllUndefAssignments = function (statement) {
 				return statement
 					.expression
 					.expressions
 					.every(function (assign) {
 						return matchObject(assign, assignPattern);
 					});
-			}
+			};
 
 			for (var i = 0; 
 				matchObject(statements[i], sequencePattern) &&
@@ -134,7 +138,7 @@ var transforms = {
 	VariableDeclaration: function (node, context) {
 		node.declarations.forEach(function (dec) {
 			context.localVars[dec.id.name] = true;
-		})
+		});
 
 		return makeAssignmentSequence(
 			node.declarations.map(function (dec) {
@@ -143,7 +147,7 @@ var transforms = {
 					operator: "=",
 					left: dec.id,
 					right: dec.init || identifier("undefined")
-				}
+				};
 			}
 		));
 	},
@@ -224,15 +228,15 @@ function convertTailCall(node, context) {
 
 	return {
 		type: "BlockStatement",
-		body: assignments.concat({
+		body:assignments.concat({
 			type: "ContinueStatement",
 			label: identifier("_tailCall_")
 		})
-	};
+	}
 }
 
 // Convert a statement of the form: 
-// 		return (test ? consequent : alternate);
+//		return (test ? consequent : alternate);
 // to the form: 
 //		if (test) return consequent; else return alternate;
 // then call mapTree again to perform tail call optimisation
@@ -259,7 +263,7 @@ function convertTernaryIfBody(expression) {
 		return {
 			type: "BlockStatement",
 			body: blockBody
-		}
+		};
 	}
 	else return wrapWithReturnStatement(expression);
 }
@@ -340,8 +344,10 @@ function mapTree(node, context) {
 function mapChildren(node, context) {
 	var mapped;
 	if (node instanceof Array) {
-		mapped = node.map(function (item) {
-			return mapTree(item, context);
+		mapped = flatMap(node, function (item) {
+			var child = mapTree(item, context);
+			return (child && child.type === "BlockStatement") ? 
+				child.body : child;
 		});
 	}
 	else {
@@ -395,7 +401,7 @@ function prefix(pre) {
 function always(value) {
 	return function () {
 		return value;
-	}
+	};
 }
 
 function eachPair(array1, array2, func) {
